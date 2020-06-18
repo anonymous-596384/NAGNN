@@ -32,7 +32,7 @@ def discriminatorLoss(options, variablesMap, logits, lbl_in, lbl_in_1, isSupervi
     loss = (1.0 - isSupervised_flag) * loss_un + isSupervised_flag * ( isOnlyAddZerosCol_flag * loss_su + (1.0-isOnlyAddZerosCol_flag) * loss_su_1 )
     
     vars = tf.trainable_variables()
-    lossL2 = loss + (isDLoss_flag * (isPreTrain_flag * (tf.nn.l2_loss(variablesMap['D_W0']) + tf.nn.l2_loss(variablesMap['D_W1'])) * options['pre_l2_coef'] + (1.0-isPreTrain_flag) * (tf.nn.l2_loss(variablesMap['D_W0']) + tf.nn.l2_loss(variablesMap['D_W1'])) * options['GAN_l2']))  + ((1.0-isDLoss_flag) * (tf.nn.l2_loss(variablesMap['G_MLP_W']) + tf.nn.l2_loss(variablesMap['G_MLP_b']))) * options['GAN_l2']
+    lossL2 = loss + (isDLoss_flag * (isPreTrain_flag * (tf.nn.l2_loss(variablesMap['D_W0']) + tf.nn.l2_loss(variablesMap['D_W1']) + tf.nn.l2_loss(variablesMap['D_b0']) + tf.nn.l2_loss(variablesMap['D_b1'])) * options['pre_l2_coef'] + (1.0-isPreTrain_flag) * (tf.nn.l2_loss(variablesMap['D_W0']) + tf.nn.l2_loss(variablesMap['D_W1'])) * options['GAN_l2']))  + ((1.0-isDLoss_flag) * (tf.nn.l2_loss(variablesMap['G_MLP_W']) + tf.nn.l2_loss(variablesMap['G_MLP_b']))) * options['GAN_l2']
     
     accuracy = masked_accuracy(log_resh, lab_resh, msk_resh)
     predLabels, trueLabels = predictLabels(log_resh, lab_resh)
@@ -45,29 +45,27 @@ def GCNModel(ftr_in, adj_0, mask_0, adj_1, mask_1, variablesMap,
     """
     GCN model
     """
-    h_1 = layerModel(ftr_in, adj_1, mask_1, variablesMap['D_W0'], ffd_drop, activation)
-    h_2 = layerModel(h_1, adj_0, mask_0, variablesMap['D_W1'], ffd_drop, activation)
+    h_1 = layerModel(ftr_in, adj_1, mask_1, variablesMap['D_W0'], variablesMap['D_b0'], ffd_drop, activation)
+    h_2 = layerModel(h_1, adj_0, mask_0, variablesMap['D_W1'], variablesMap['D_b1'], ffd_drop, activation)
     logits = h_2
     return logits 
 
-def layerModel(seq, adj, mask, W, in_drop=0.0, activation=tf.nn.elu):
+def layerModel(seq, adj, mask, W, b, in_drop=0.0, activation=tf.nn.elu):
     """
     GCN layer
     """
     with tf.name_scope('my_attn'):
         if in_drop != 0.0:
             seq = tf.nn.dropout(seq, 1.0 - in_drop)
-        seq_fts = tf.matmul(seq, W) # shape=(num,new_dim)
+        seq_fts = tf.matmul(seq, W) 
         
-        seq_fts = tf.nn.embedding_lookup(seq_fts, adj) # shape=(nodeNum,maxlen,new_dim)
+        seq_fts = tf.nn.embedding_lookup(seq_fts, adj) 
         seq_fts = seq_fts * mask[:,:,None]
-        ret = tf.reduce_sum(seq_fts, axis=1) # shape=(nodeNum,new_dim)
+        ret = tf.reduce_sum(seq_fts, axis=1) + b
         
-        # dropout
         if in_drop != 0.0: 
             ret = tf.nn.dropout(ret, 1.0 - in_drop)
-        # shape=(nodeNum,new_dim)
-        return activation(ret)  # activation
+        return activation(ret)  
 
 
 def masked_softmax_cross_entropy(logits, labels, mask):

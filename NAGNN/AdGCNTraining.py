@@ -21,15 +21,19 @@ def variablesInit(options):
     variablesMap={}
     D_W0 = tf.Variable(tf.random_uniform([options['feature_num'], options['hid_units'][0]], -0.01, 0.01), dtype=tf.float32, name="D_W0") # shape=(nNodes,dim)
     D_W1 = tf.Variable(tf.random_uniform([options['hid_units'][0], options['all_class_num']], -0.01, 0.01), dtype=tf.float32, name="D_W1") # shape=(nNodes,dim)
+    D_b0 = tf.Variable(tf.random_uniform([options['hid_units'][0],], -0.01, 0.01), dtype=tf.float32, name="D_b0") # shape=(nNodes,dim)
+    D_b1 = tf.Variable(tf.random_uniform([options['all_class_num'],], -0.01, 0.01), dtype=tf.float32, name="D_b1") # shape=(nNodes,dim)
     variablesMap["D_W0"]=D_W0
     variablesMap["D_W1"]=D_W1
+    variablesMap["D_b0"]=D_b0
+    variablesMap["D_b1"]=D_b1
     
     G_MLP_W = tf.Variable(tf.random_uniform([options['feature_num'], options['feature_num']], -0.01, 0.01), dtype=tf.float32, name="G_MLP_W") # shape=(concat_len,feature_num)
     G_MLP_b = tf.Variable(tf.random_uniform([options['feature_num']], -0.01, 0.01), dtype=tf.float32, name="G_MLP_b") # shape=(feature_num)
     variablesMap["G_MLP_W"]=G_MLP_W
     variablesMap["G_MLP_b"]=G_MLP_b
     
-    theta_D = [D_W0, D_W1]
+    theta_D = [D_W0, D_W1, D_b0, D_b1]
     theta_G = [G_MLP_W, G_MLP_b]
     
     return variablesMap, theta_D, theta_G
@@ -255,24 +259,12 @@ def adGCNTraining(
                 })
             val_micro_f1, val_macro_f1 = processTools.micro_macro_f1_removeMiLabels(val_trueLabels, val_predLabels, mi_f1_labels)
             
-            test_loss, test_acc, test_predLabels, test_trueLabels = sess.run([D_loss_su_r, D_accuracy_su_r, D_predLabels_su_r, D_trueLabels_su_r], feed_dict={
-                ffd_drop: 0.0,
-                isPreTrain_flag: 0.0,
-                lbl_in_su: lbl_ts,
-                lbl_1_in_su: lbl_1_ts,
-                adj_0_su: adj_0_ts,
-                mask_0_su: mask_0_nor_ts,
-                adj_1_su: adj_1_ts,
-                mask_1_su: mask_1_nor_ts,
-                features_array_su: features_array_ts
-                })
-            test_micro_f1, test_macro_f1 = processTools.micro_macro_f1_removeMiLabels(test_trueLabels, test_predLabels, mi_f1_labels)
             
             print('time ==', time.strftime('%Y-%m-%d %H:%M:%S',time.localtime(time.time())))
-            print('Epoch: %d | Training: d_loss = %.5f, d_loss_su_r = %.5f, d_loss_su_f = %.5f, d_loss_un_r = %.5f, d_loss_un_f = %.5f, d_acc = %.5f, g_loss = %.5f, g_loss_su = %.5f, g_loss_un = %.5f, g_acc = %.5f | Val: loss = %.5f, acc = %.5f, mi-f1 = %.5f, ma-f1 = %.5f | Test: loss = %.5f, acc = %.5f, mi-f1 = %.5f, ma-f1 = %.5f' %
+            print('Epoch: %d | Training: d_loss = %.5f, d_loss_su_r = %.5f, d_loss_su_f = %.5f, d_loss_un_r = %.5f, d_loss_un_f = %.5f, d_acc = %.5f, g_loss = %.5f, g_loss_su = %.5f, g_loss_un = %.5f, g_acc = %.5f | Val: loss = %.5f, acc = %.5f, mi-f1 = %.5f, ma-f1 = %.5f ' %
                 (epoch, d_loss_sum/batchIndex/inner_epoch_D, d_lossL2_su_r_value_sum/batchIndex/inner_epoch_D, d_lossL2_su_f_value_sum/batchIndex/inner_epoch_D, d_lossL2_un_r_value_sum/batchIndex/inner_epoch_D, d_lossL2_un_f_value_sum/batchIndex/inner_epoch_D, d_acc_sum/batchIndex/inner_epoch_D, 
                  g_loss_sum/batchIndex/inner_epoch_G if inner_epoch_G!=0 else 0.0, g_lossL2_su_value_sum/batchIndex/inner_epoch_G if inner_epoch_G!=0 else 0.0, g_lossL2_un_value_sum/batchIndex/inner_epoch_G if inner_epoch_G!=0 else 0.0, g_acc_sum/batchIndex/inner_epoch_G if inner_epoch_G!=0 else 0.0, 
-                val_loss, val_acc, val_micro_f1, val_macro_f1, test_loss, test_acc, test_micro_f1, test_macro_f1))
+                val_loss, val_acc, val_micro_f1, val_macro_f1))
             
             if epoch < 200: 
                 continue

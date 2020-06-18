@@ -21,15 +21,19 @@ def variablesInit(options):
     variablesMap={}
     D_W0 = tf.Variable(tf.random_uniform([options['feature_num'], options['hid_units'][0]], -0.01, 0.01), dtype=tf.float32, name="D_W0") # shape=(nNodes,dim)
     D_W1 = tf.Variable(tf.random_uniform([options['hid_units'][0], options['all_class_num']], -0.01, 0.01), dtype=tf.float32, name="D_W1") # shape=(nNodes,dim)
+    D_b0 = tf.Variable(tf.random_uniform([options['hid_units'][0],], -0.01, 0.01), dtype=tf.float32, name="D_b0") # shape=(nNodes,dim)
+    D_b1 = tf.Variable(tf.random_uniform([options['all_class_num'],], -0.01, 0.01), dtype=tf.float32, name="D_b1") # shape=(nNodes,dim)
     variablesMap["D_W0"]=D_W0
     variablesMap["D_W1"]=D_W1
+    variablesMap["D_b0"]=D_b0
+    variablesMap["D_b1"]=D_b1
     
     G_MLP_W = tf.Variable(tf.random_uniform([options['feature_num'], options['feature_num']], -0.01, 0.01), dtype=tf.float32, name="G_MLP_W") # shape=(concat_len,feature_num)
     G_MLP_b = tf.Variable(tf.random_uniform([options['feature_num']], -0.01, 0.01), dtype=tf.float32, name="G_MLP_b") # shape=(feature_num)
     variablesMap["G_MLP_W"]=G_MLP_W
     variablesMap["G_MLP_b"]=G_MLP_b
     
-    theta_D = [D_W0, D_W1]
+    theta_D = [D_W0, D_W1, D_b0, D_b1]
     theta_G = [G_MLP_W, G_MLP_b]
     
     return variablesMap, theta_D, theta_G
@@ -207,21 +211,8 @@ def adGCNTraining(
                 })
             val_micro_f1, val_macro_f1 = processTools.micro_macro_f1_removeMiLabels(pretrain_val_trueLabels, pretrain_val_predLabels, mi_f1_labels)
             
-            test_loss, test_acc, test_predLabels, test_trueLabels = sess.run([D_lossL2_su_r, D_accuracy_su_r, D_predLabels_su_r, D_trueLabels_su_r], feed_dict={
-                ffd_drop: 0.0,
-                isPreTrain_flag: 1.0,
-                lbl_in_su: lbl_ts,
-                lbl_1_in_su: lbl_1_ts,
-                adj_0_su: adj_0_ts,
-                mask_0_su: mask_0_nor_ts,
-                adj_1_su: adj_1_ts,
-                mask_1_su: mask_1_nor_ts,
-                features_array_su: features_array_ts
-                })
-            test_micro_f1, test_macro_f1 = processTools.micro_macro_f1_removeMiLabels(test_trueLabels, test_predLabels, mi_f1_labels)
-            
-            print('Epoch: %d | D-Pretraining: loss = %.5f, acc = %.5f | Val: loss = %.5f, acc = %.5f | Test: loss = %.5f, acc = %.5f' %
-                (epoch, lossL2_pretrain_d, acc_pretrain_d, pretrain_val_loss, pretrain_val_acc, test_loss, test_acc))
+            print('Epoch: %d | D-Pretraining: loss = %.5f, acc = %.5f | Val: loss = %.5f, acc = %.5f ' %
+                (epoch, lossL2_pretrain_d, acc_pretrain_d, pretrain_val_loss, pretrain_val_acc))
             # 进行val结果的记录
             if pretrain_val_loss<=pretrain_vlss_mn or pretrain_val_acc>=pretrain_vacc_mx:
                 if pretrain_val_loss<=pretrain_vlss_mn and pretrain_val_acc>=pretrain_vacc_mx: 
@@ -237,22 +228,7 @@ def adGCNTraining(
                     print('Early stop Pretrain Discriminator! Min loss: ', pretrain_vlss_mn, ', Max accuracy: ', pretrain_vacc_mx)
                     break
         saver.restore(sess, pre_train_checkpt_file) 
-        test_loss, test_acc, test_predLabels, test_trueLabels = sess.run([D_lossL2_su_r, D_accuracy_su_r, D_predLabels_su_r, D_trueLabels_su_r], feed_dict={
-                ffd_drop: 0.0,
-                isPreTrain_flag: 1.0,
-                lbl_in_su: lbl_ts,
-                lbl_1_in_su: lbl_1_ts,
-                adj_0_su: adj_0_ts,
-                mask_0_su: mask_0_nor_ts,
-                adj_1_su: adj_1_ts,
-                mask_1_su: mask_1_nor_ts,
-                features_array_su: features_array_ts
-                })
-        test_micro_f1, test_macro_f1 = processTools.micro_macro_f1_removeMiLabels(test_trueLabels, test_predLabels, mi_f1_labels)
         print('Pretrain early stop epoch == ', pretrain_stop_epoch)
-        print('End pretrian Discriminator, Test acc == ', test_acc)
-        print('End pretrian Discriminator, ', 'mi-f1 == ', test_micro_f1)
-        print('End pretrian Discriminator, ', 'ma-f1 == ', test_macro_f1)
         print('----------------------------------------------------------------------------------')
         
 

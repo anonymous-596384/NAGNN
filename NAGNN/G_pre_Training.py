@@ -21,15 +21,19 @@ def variablesInit(options):
     variablesMap={}
     D_W0 = tf.Variable(tf.random_uniform([options['feature_num'], options['hid_units'][0]], -0.01, 0.01), dtype=tf.float32, name="D_W0") # shape=(nNodes,dim)
     D_W1 = tf.Variable(tf.random_uniform([options['hid_units'][0], options['all_class_num']], -0.01, 0.01), dtype=tf.float32, name="D_W1") # shape=(nNodes,dim)
+    D_b0 = tf.Variable(tf.random_uniform([options['hid_units'][0],], -0.01, 0.01), dtype=tf.float32, name="D_b0") # shape=(nNodes,dim)
+    D_b1 = tf.Variable(tf.random_uniform([options['all_class_num'],], -0.01, 0.01), dtype=tf.float32, name="D_b1") # shape=(nNodes,dim)
     variablesMap["D_W0"]=D_W0
     variablesMap["D_W1"]=D_W1
+    variablesMap["D_b0"]=D_b0
+    variablesMap["D_b1"]=D_b1
     
     G_MLP_W = tf.Variable(tf.random_uniform([options['feature_num'], options['feature_num']], -0.01, 0.01), dtype=tf.float32, name="G_MLP_W") # shape=(concat_len,feature_num)
     G_MLP_b = tf.Variable(tf.random_uniform([options['feature_num']], -0.01, 0.01), dtype=tf.float32, name="G_MLP_b") # shape=(feature_num)
     variablesMap["G_MLP_W"]=G_MLP_W
     variablesMap["G_MLP_b"]=G_MLP_b
     
-    theta_D = [D_W0, D_W1]
+    theta_D = [D_W0, D_W1, D_b0, D_b1]
     theta_G = [G_MLP_W, G_MLP_b]
     
     return variablesMap, theta_D, theta_G
