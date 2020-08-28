@@ -1,5 +1,5 @@
 # NAGNN 
-Source code for NAGNN (under review)
+Source code for NAGNN 
 
 FileList:
 
